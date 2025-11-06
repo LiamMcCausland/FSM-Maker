@@ -1,5 +1,5 @@
 # FSM-Maker
 
-* [ ] Arrows
+* [X] Arrows
 * [ ] Arrow labels
 * [ ] accepting states
