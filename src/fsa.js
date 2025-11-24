@@ -30,7 +30,7 @@ function state(x, y, label = 'new') {
         position: { x, y },
         size: { width: 60, height: 60 },
         attrs: {
-            label: { text: label, fontWeight: 'bold', cursor: 'text', style: { userSelect: 'text' } },
+            label: { text: formatLabel(label), fontWeight: 'bold', cursor: 'text', style: { userSelect: 'text' } },
             body: { strokeWidth: 3, stroke: '#000000' },
             innerCircle: { display: 'none', ref: 'body', refCx: '50%', refCy: '50%', r: 26, stroke: '#000000', strokeWidth: 3, fill: 'none' }
         },
@@ -150,14 +150,49 @@ paper.on('element:contextmenu', function(elementView, evt) {
                     { x: pos.x - size.width, y: pos.y - size.height / 2 }
                 ];
             }
-            link(transitionSource, targetElement, label, vertices);
+            link(transitionSource, targetElement, formatLabel(label), vertices);
         }
         graph.getElements().forEach(el => el.attr('body/stroke', '#000000'));
         transitionSource = null;
     }
 });
 
-// Label editing
+const unicodeMap = {
+    // Greek letters (lowercase)
+    'alpha':'α','beta':'β','gamma':'γ','delta':'δ','epsilon':'ε','zeta':'ζ','eta':'η','theta':'θ',
+    'iota':'ι','kappa':'κ','lambda':'λ','mu':'μ','nu':'ν','xi':'ξ','omicron':'ο','pi':'π','rho':'ρ',
+    'sigma':'σ','tau':'τ','upsilon':'υ','phi':'φ','chi':'χ','psi':'ψ','omega':'ω',
+
+    // Greek letters (uppercase)
+    'Alpha':'Α','Beta':'Β','Gamma':'Γ','Delta':'Δ','Epsilon':'Ε','Zeta':'Ζ','Eta':'Η','Theta':'Θ',
+    'Iota':'Ι','Kappa':'Κ','Lambda':'Λ','Mu':'Μ','Nu':'Ν','Xi':'Ξ','Omicron':'Ο','Pi':'Π','Rho':'Ρ',
+    'Sigma':'Σ','Tau':'Τ','Upsilon':'Υ','Phi':'Φ','Chi':'Χ','Psi':'Ψ','Omega':'Ω',
+
+    // Other symbols
+    '->':'→',
+    'sqcup':'⊔'
+};
+
+const subscriptMap = {
+    '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉',
+    'a':'ₐ','e':'ₑ','i':'ᵢ','o':'ₒ','r':'ᵣ','u':'ᵤ','v':'ᵥ','x':'ₓ'
+};
+
+function formatLabel(str) {
+    // Replace symbols first
+    Object.keys(unicodeMap).forEach(key => {
+        const re = new RegExp(key, 'g');
+        str = str.replace(re, unicodeMap[key]);
+    });
+
+    // Replace subscripts like q_0
+    str = str.replace(/_(\w)/g, (_, c) => subscriptMap[c] || c);
+
+    return str;
+}
+
+
+
 document.addEventListener('keydown', function(evt) {
     if (!selectedState) return;
     if (evt.key === 'Escape') {
@@ -166,14 +201,17 @@ document.addEventListener('keydown', function(evt) {
         return;
     }
     if (evt.key.length === 1) {
-        const oldLabel = selectedState.attr('label/text') || '';
-        selectedState.attr('label/text', oldLabel + evt.key);
+        let oldLabel = selectedState.attr('label/text') || '';
+        oldLabel += evt.key;
+        selectedState.attr('label/text', formatLabel(oldLabel));
     } else if (evt.key === 'Backspace') {
-        const oldLabel = selectedState.attr('label/text') || '';
-        selectedState.attr('label/text', oldLabel.slice(0, -1));
+        let oldLabel = selectedState.attr('label/text') || '';
+        oldLabel = oldLabel.slice(0, -1);
+        selectedState.attr('label/text', formatLabel(oldLabel));
         evt.preventDefault();
     }
 });
+
 
 // Toggle accepting on Shift + double-click
 paper.on('element:pointerdblclick', function(elementView, evt) {
