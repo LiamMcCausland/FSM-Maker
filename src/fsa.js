@@ -25,7 +25,6 @@ paper.on('cell:pointerdown blank:pointerdown', function() {
 
 let startArrowAdded = false;
 
-// Create a normal state with support for an inner ring
 function state(x, y, label = 'new') {
     const circle = new joint.shapes.standard.Circle({
         position: { x, y },
@@ -56,12 +55,8 @@ function state(x, y, label = 'new') {
 }
 
 function makeAccepting(el, accepting = true) {
-    if (accepting) {
-        el.attr('body/strokeWidth', 3);
-        el.attr('innerCircle/display', 'block'); // show inner ring
-    } else {
-        el.attr('innerCircle/display', 'none'); // hide inner ring
-    }
+    if (accepting) el.attr('innerCircle/display', 'block');
+    else el.attr('innerCircle/display', 'none');
 }
 
 function initState(x, y) {
@@ -115,16 +110,28 @@ const linkTools = new joint.dia.ToolsView({
 paper.on('link:mouseenter', linkView => linkView.addTools(linkTools));
 paper.on('link:mouseleave', linkView => linkView.removeTools());
 
-let selectedLabelElement = null;
+let selectedState = null;
+let selectedLink = null;
 let transitionSource = null;
 
+// Select state
 paper.on('element:pointerclick', function(elementView, evt) {
     if (evt.button === 2) return;
-    if (selectedLabelElement) selectedLabelElement.attr('body/stroke', '#000000');
-    selectedLabelElement = elementView.model;
-    selectedLabelElement.attr('body/stroke', '#00aaff');
+    selectedState = elementView.model;
+    selectedLink = null;
+    selectedState.attr('body/stroke', '#00aaff');
+    graph.getLinks().forEach(l => l.attr('line/stroke', '#000000'));
 });
 
+// Select link
+paper.on('link:pointerclick', function(linkView, evt) {
+    selectedLink = linkView.model;
+    selectedState = null;
+    selectedLink.attr('line/stroke', '#ff0000');
+    evt.stopPropagation();
+});
+
+// Right-click to create transition
 paper.on('element:contextmenu', function(elementView, evt) {
     evt.preventDefault();
     if (!transitionSource) {
@@ -150,19 +157,20 @@ paper.on('element:contextmenu', function(elementView, evt) {
     }
 });
 
+// Label editing
 document.addEventListener('keydown', function(evt) {
-    if (!selectedLabelElement) return;
+    if (!selectedState) return;
     if (evt.key === 'Escape') {
-        selectedLabelElement.attr('body/stroke', '#000000');
-        selectedLabelElement = null;
+        selectedState.attr('body/stroke', '#000000');
+        selectedState = null;
         return;
     }
     if (evt.key.length === 1) {
-        const oldLabel = selectedLabelElement.attr('label/text') || '';
-        selectedLabelElement.attr('label/text', oldLabel + evt.key);
+        const oldLabel = selectedState.attr('label/text') || '';
+        selectedState.attr('label/text', oldLabel + evt.key);
     } else if (evt.key === 'Backspace') {
-        const oldLabel = selectedLabelElement.attr('label/text') || '';
-        selectedLabelElement.attr('label/text', oldLabel.slice(0, -1));
+        const oldLabel = selectedState.attr('label/text') || '';
+        selectedState.attr('label/text', oldLabel.slice(0, -1));
         evt.preventDefault();
     }
 });
@@ -170,33 +178,44 @@ document.addEventListener('keydown', function(evt) {
 // Toggle accepting on Shift + double-click
 paper.on('element:pointerdblclick', function(elementView, evt) {
     if (!evt.shiftKey) return;
-
     const el = elementView.model;
     const isAccepting = el.attr('innerCircle/display') === 'block';
     makeAccepting(el, !isAccepting);
-
     evt.stopPropagation();
 });
-
-
 
 // Double-click blank space → add new state
 paper.on('blank:pointerdblclick', function(evt, x, y) {
     state(x - 30, y - 30);
 });
 
+// Clear button
 const toolbar = document.getElementById('toolbar');
 const clearBtn = document.createElement('button');
 clearBtn.textContent = 'Clear';
 toolbar.appendChild(clearBtn);
 clearBtn.addEventListener('click', () => {
     graph.clear();
-    start
-    selectedLabelElement = null;
+    selectedState = null;
+    selectedLink = null;
     transitionSource = null;
-        startArrowAdded = false; // Reset tracker so next added state gets start arrow
+    startArrowAdded = false;
 });
 
+// Delete key: remove selected state or link
+document.addEventListener('keydown', function(evt) {
+    if (evt.key !== 'Delete') return;
+    if (selectedState) {
+        graph.getConnectedLinks(selectedState).forEach(link => link.remove());
+        selectedState.remove();
+        selectedState = null;
+    } else if (selectedLink) {
+        selectedLink.remove();
+        selectedLink = null;
+    }
+});
+
+// Initial FSM
 const start = initState(50, 530);
 const code = state(180, 390, 'code');
 const slash = state(340, 220, 'slash');
