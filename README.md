@@ -16,10 +16,11 @@ A browser-based Finite State Machine (FSM) builder using **JointJS**.
 - [x] Label editing supports backspace and typing  
 - [x] Start arrow and inner ring always move with the state  
 - [x] Inner ring of accepting states does not interfere with clicks or transitions  
+- [x] Delete states and their attached transitions
 
 ## Planned / Future Features
 
-- [ ] LaTeX support for labels (render equations and symbols)  
+- [x] LaTeX support for labels (render equations and symbols)  
 - [ ] Custom symbols for states and transitions  
 - [ ] Multiple start states or entry points  
 - [ ] Export FSM to JSON or SVG  
