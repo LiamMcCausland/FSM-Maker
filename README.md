@@ -21,7 +21,7 @@ A browser-based Finite State Machine (FSM) builder using **JointJS**.
 ## Planned / Future Features
 
 - [x] LaTeX support for labels (render equations and symbols)  
-- [ ] Custom symbols for states and transitions  
+- [x] Custom symbols for states and transitions  
 - [ ] Multiple start states or entry points  
 - [ ] Export FSM to JSON or SVG  
 - [ ] Undo / redo actions  
