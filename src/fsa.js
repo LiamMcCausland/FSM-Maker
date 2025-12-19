@@ -14,6 +14,26 @@ const paper = new joint.dia.Paper({
     labelsLayer: true
 });
 
+graph.on('change:position', (element) => {
+    const links = graph.getConnectedLinks(element, { outbound: true });
+
+    links.forEach(link => {
+        const source = link.get('source');
+        const target = link.get('target');
+
+        // Only self-loops
+        if (source.id === target.id && source.id === element.id) {
+            const pos = element.position();
+            const size = element.size();
+
+            link.set('vertices', [
+                { x: pos.x + size.width + 20, y: pos.y - 20 },
+                { x: pos.x - 20, y: pos.y - 20 }
+            ]);
+        }
+    });
+});
+
 paper.on('element:label:pointerdown', function(_view, evt) {
     evt.stopPropagation();
 });
@@ -25,7 +45,7 @@ paper.on('cell:pointerdown blank:pointerdown', function() {
 
 let startArrowAdded = false;
 
-function state(x, y, label = 'new') {
+function state(x, y, label = '') {
     const circle = new joint.shapes.standard.Circle({
         position: { x, y },
         size: { width: 60, height: 60 },
@@ -89,16 +109,25 @@ function link(source, target, label, vertices) {
 
 function addStartArrow(targetState) {
     const pos = targetState.position();
-    const startPos = { x: pos.x - 80, y: pos.y + 30 };
+
     const startCircle = new joint.shapes.standard.Circle({
-        position: startPos,
+        position: {
+            x: pos.x - 80,
+            y: pos.y + 20
+        },
         size: { width: 20, height: 20 },
         attrs: { body: { fill: '#333333' } },
-        selectable: false
+        selectable: false,
+        interactive: false
     }).addTo(graph);
 
+    // Embed start circle into the target state
+    targetState.embed(startCircle);
+
+    // Link still connects normally
     link(startCircle, targetState, 'start');
 }
+
 
 const linkTools = new joint.dia.ToolsView({
     tools: [
@@ -107,6 +136,7 @@ const linkTools = new joint.dia.ToolsView({
         new joint.linkTools.TargetArrowhead()
     ]
 });
+
 paper.on('link:mouseenter', linkView => linkView.addTools(linkTools));
 paper.on('link:mouseleave', linkView => linkView.removeTools());
 
@@ -191,8 +221,6 @@ function formatLabel(str) {
     return str;
 }
 
-
-
 document.addEventListener('keydown', function(evt) {
     if (!selectedState) return;
     if (evt.key === 'Escape') {
@@ -211,7 +239,6 @@ document.addEventListener('keydown', function(evt) {
         evt.preventDefault();
     }
 });
-
 
 // Toggle accepting on Shift + double-click
 paper.on('element:pointerdblclick', function(elementView, evt) {
